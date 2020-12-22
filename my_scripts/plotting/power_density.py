@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
 from scipy.optimize import curve_fit
+import pandas as pd
 
 
 def lineal(x, a, s):
@@ -61,7 +62,7 @@ def plot_pds(
         ax_product.set_xlim(1e-5, 1e2)
         ax_product.set_ylim(1, 1e3)
 
-    return ax
+    return -popt[0]
 
 
 def plot_distribution(x):
@@ -132,7 +133,7 @@ def plot_scaling(
         if cutoff_min is not None:
             perform_fit_over = np.logical_and(perform_fit_over, x_axes > cutoff_min)
 
-        if cutoff > min(x_axes) and cutoff < max(x_axes):
+        if min(x_axes) < cutoff < max(x_axes):
             ax.axvline(cutoff, ls="dashed", alpha=0.5)
 
         # Linear regresion
@@ -170,3 +171,33 @@ def plot_scaling(
         )
 
     ax.set_yscale("log")
+    return -popt[0]
+
+
+def regplot(x, y, ax, cutoff_min=0, cutoff_max=1e10):
+    ax.scatter(x, y)
+    x_axes = np.linspace(min(x), max(x), num=100)
+
+    df = pd.DataFrame({"durations": x, "areas": y})
+    gb = df.groupby("durations").mean()
+
+    perform_fit_over = np.logical_and(gb.index > cutoff_min, gb.index < cutoff_max)
+
+    popt, pcov = curve_fit(
+        lineal,
+        np.log10(gb.iloc[perform_fit_over].index.values),
+        np.log10(gb.iloc[perform_fit_over].areas.values),
+        maxfev=10000,
+    )
+
+    ax.plot(x_axes, 10 ** lineal(np.log10(x_axes), *popt), "r-")
+
+    ax.set_yscale("log")
+    ax.set_xscale("log")
+    ax.text(
+        0.3,
+        0.7,
+        r"$S(\tau) \approx \tau ^ {{ {:.2f} }} $".format(popt[0]),
+        transform=ax.transAxes,
+    )
+    return popt[0]
