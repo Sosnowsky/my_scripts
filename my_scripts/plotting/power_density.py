@@ -201,3 +201,73 @@ def regplot(x, y, ax, cutoff_min=0, cutoff_max=1e10):
         transform=ax.transAxes,
     )
     return popt[0]
+
+
+def plot_structure_functions(x, max_l, dt, ax=None):
+    """
+    Computes the structure functions:
+        S(l, q) = E[|X(k+l) - X(k)|^q]
+    For q = 1, 2, 3, 4 and presents them in log log plot.
+    """
+    S = []
+    moments = [1, 2, 3, 4]
+    ls = np.logspace(0, np.log10(max_l / dt), 20).astype(int)
+
+    for l in ls:
+        S.append(
+            [sum(np.power(abs(x[l:] - x[:-l]), q)) / (len(x) - l) for q in moments]
+        )
+    a = np.array([np.array(xi) for xi in S])
+
+    if ax is None:
+        return
+
+    ls = np.array(ls) * dt
+    q = 0
+    ax.scatter(ls, a[:, q], color="red")
+    popt, pcov = curve_fit(lineal, np.log10(ls), np.log10(a[:, q]), maxfev=10000)
+    ax.plot(
+        ls,
+        10 ** lineal(np.log10(ls), *popt),
+        "r-",
+        label="$q = {} exp = {:.2f}$".format(q + 1, popt[0]),
+        color="red",
+    )
+
+    q = 1
+    ax.scatter(ls, a[:, q], color="blue")
+    popt, pcov = curve_fit(lineal, np.log10(ls), np.log10(a[:, q]), maxfev=10000)
+    ax.plot(
+        ls,
+        10 ** lineal(np.log10(ls), *popt),
+        "r-",
+        label="$q = {} exp = {:.2f}$".format(q + 1, popt[0]),
+        color="blue",
+    )
+
+    q = 2
+    ax.scatter(ls, a[:, q], color="green")
+    popt, pcov = curve_fit(lineal, np.log10(ls), np.log10(a[:, q]), maxfev=10000)
+    ax.plot(
+        ls,
+        10 ** lineal(np.log10(ls), *popt),
+        "r-",
+        label="$q = {} exp = {:.2f}$".format(q + 1, popt[0]),
+        color="green",
+    )
+
+    q = 3
+    ax.scatter(ls, a[:, q], color="black")
+    popt, pcov = curve_fit(lineal, np.log10(ls), np.log10(a[:, q]), maxfev=10000)
+    ax.plot(
+        ls,
+        10 ** lineal(np.log10(ls), *popt),
+        "r-",
+        label="$q = {} exp = {:.2f}$".format(q + 1, popt[0]),
+        color="black",
+    )
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.legend()
+    ax.grid(True)
